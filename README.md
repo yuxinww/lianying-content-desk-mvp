@@ -97,14 +97,16 @@ npm run build
 
 ## 在线地址
 
-- GitHub 仓库：[yuxinww/lianying-content-desk-mvp](https://github.com/yuxinww/lianying-content-desk-mvp)（私有）
+- 在线演示：[GitHub Pages](https://yuxinww.github.io/lianying-content-desk-mvp/)
+- GitHub 仓库：[yuxinww/lianying-content-desk-mvp](https://github.com/yuxinww/lianying-content-desk-mvp)（公开）
 - 本地演示：`http://localhost:5173/`
 
 ## 项目结构
 
 ```text
 app/
-  page.tsx          # MVP 状态与完整流程
+  page.tsx          # 可静态部署的页面入口
+  content-desk.tsx  # MVP 状态与完整流程
   demo-views.tsx    # 各工作台页面与交互视图
   demo-data.ts      # 稳定演示数据
   globals.css       # 视觉规范与响应式样式

@@ -12,6 +12,7 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
+const githubPages = process.env.GITHUB_PAGES === "true";
 
 const localBindingConfig = {
   main: "vinext/server/fetch-handler",
@@ -36,6 +37,12 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async () => {
+  if (githubPages) {
+    return {
+      plugins: [vinext()],
+    };
+  }
+
   // Use Miniflare's local Request.cf placeholder unless fetching is requested.
   process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
   process.env.WRANGLER_SEND_METRICS ??= "false";
