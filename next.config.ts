@@ -1,12 +1,15 @@
 import type { NextConfig } from "next";
 
 const githubPages = process.env.GITHUB_PAGES === "true";
-const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "lianying-content-desk-mvp";
-const githubBasePath = githubPages ? `/${repositoryName}` : "";
+const [repositoryOwner = "yuxinww", repositoryName = "lianying-content-desk-mvp"] =
+  process.env.GITHUB_REPOSITORY?.split("/") ?? [];
+const githubAssetPrefix = githubPages
+  ? `https://${repositoryOwner}.github.io/${repositoryName}`
+  : "";
 
 const nextConfig: NextConfig = {
   ...(githubPages ? { output: "export" as const } : {}),
-  assetPrefix: githubBasePath,
+  assetPrefix: githubAssetPrefix,
   trailingSlash: githubPages,
   images: {
     unoptimized: true,
