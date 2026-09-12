@@ -1,126 +1,114 @@
-# vinext-starter
+# 连盈内容台 MVP
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+面向护理床内容运营团队的内容决策与脚本生成工作台。MVP 将客户材料、选题评分、细分角度、真人脚本或 AIGC Prompt、风险检测、发布反馈和经验沉淀串成一条可完整演示的闭环。
 
-## Prerequisites
+## 1. 可运行的 MVP
 
-- Node.js `>=22.13.0`
-- Portable: Windows, macOS, or Linux; no Bash required
-- Managed Linux: managed Linux runtime with Bash, `flock`, `curl`, `sha256sum`, and GNU `timeout`
-- Git is required only for publishing
+已跑通以下核心流程：
 
-## Sites Lifecycle
+> 材料输入 → 生成 4 个候选选题 → 查看评分依据 → 选择细分版本 → 生成真人脚本或 AIGC Prompt → 风险检测与修改 → 标记发布 → 填写反馈 → 形成内容经验
 
-The Sites initializer copies the shared starter and selects managed-linux only when `SITES_MANAGED_LINUX_CONTAINER=1`; otherwise it selects portable. It saves the selection only in ignored `.sites-runtime/execution-profile.json`. Both profiles copy/configure first, then use the plugin's separate `install-dependencies.mjs` step to measure installation independently. Edit source under `app/` and follow the Sites skill for installation, preview, builds, and publishing.
+当前实现包括：
 
-Whenever reopening or moving a checkout, run `node <plugin-root>/scripts/configure-execution-profile.mjs` before project commands. Profile changes do not alter tracked source or require reinstalling otherwise-valid dependencies; restart an existing preview to use the new selection. Do not commit or upload `.sites-runtime/`.
+- 两个内容入口：基于材料生成、生成今天的内容
+- 四维选题评分：客户需求、同行验证、历史转化、产品匹配
+- 3 个细分版本与真人/AIGC 两种内容形式
+- 6 镜真人拍摄脚本与 5 镜 AIGC Prompt
+- 宣传合规、产品事实两类风险检测与一键修改
+- 发布标记、三项反馈指标、策略验证升级
+- 桌面端与移动端响应式界面
+- 浏览器本地状态保存与一键重置
 
-This starter does not use `wrangler.jsonc`.
+### 本地运行
 
-`install:ci` runs `npm ci` once against the shared lockfile, disables parent-workspace discovery, and includes required dev/optional dependencies despite production/omit settings. Sharp defaults to prebuilt binaries unless explicitly configured otherwise. Do not overlap installers.
+环境要求：Node.js `>=22.13.0`。
 
-- **Portable:** Preserve host HOME, npm cache, registry, proxy, temporary paths, retry/concurrency settings, and lifecycle-script policy. Use `--prefer-offline --no-audit --no-fund`.
-- **Managed Linux:** Use the existing project-local HOME/cache/tmp setup and Linux install lock, tarball preflight, and timeout. Restore the image-seeded npm cache only when its lockfile hash matches; retain network fallback. Builds keep their existing timeout. These helpers are not invoked by the portable profile.
-
-`scripts/sites-env.mjs` preserves the caller's HOME, npm cache, proxy, XDG, and temporary-directory configuration while defaulting Wrangler and Miniflare state to the checkout. If npm reports an unwritable cache, select a writable path with `npm_config_cache` for that install. The `dev` and `start` scripts also keep Wrangler logs inside the checkout. Generated `.sites-runtime/` and `.wrangler/` directories are disposable and ignored by Git.
-
-On portable, `npm run dev` uses `vinext dev` with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state, rejects an ordinary duplicate launch, and recovers stale state after a stopped process; exactly simultaneous starts can race. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep portable previews on loopback.
-
-On managed Linux, use `sites-preview start` only for requested browser QA. The project's dev script runs Vite and accepts the supervisor's `--host 0.0.0.0 --port 4173 --strictPort` arguments. The internal browser uses `http://terminal.local:4173/`; it is not a user-facing URL. The supervisor owns the preview lifecycle. The ignored local profile survives the supervisor's cleared process environment.
-
-The portable profile simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. Mock auth is disabled in the managed-linux profile and is not included in production builds; hosted authentication remains dispatch-owned.
-
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
-
-Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
-
-Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=true` to opt in.
-
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `@cloudflare/workers-types` provides Worker types; `cloudflare-env.d.ts` declares optional `DB`/`BUCKET` bindings—update these declarations if binding names change
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run install:ci
+npm run dev
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+浏览器打开 `http://localhost:5173/`。
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
+生产构建：
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Local D1 migrations
-
-For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
-
-```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_example.sql
+```bash
+npm run build
 ```
 
-Replace the filename with the pending migration and `DB` with your D1 binding name if different. Use `.wrangler/state`, not `.wrangler/state/v3`; Wrangler adds the versioned directories. Do not replay migrations already applied locally. This updates only the preview database; publishing applies production migrations separately.
+## 2. 稳定的演示数据
 
-## Diagnostic Commands
+演示不依赖外部模型、实时网络数据或第三方接口。核心材料、选题、评分、脚本、风险和反馈均已固定，因此现场操作结果可重复。
 
-- `npm run install:ci`: perform the one locked dependency install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: preview the built Worker locally with D1/R2 support
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+| 环节 | 稳定演示内容 |
+| --- | --- |
+| 客户材料 | 长期卧床老人、夜间翻身负担、担心送装和操作 |
+| 候选选题 | 固定 4 个，最高分选题为“夜里一个人给老人翻身，到底有多累？” |
+| 最高分 | 91 分，四维评分依据可展开查看 |
+| 细分版本 | 照护者痛点、老人情况、购买阻力，共 3 个 |
+| 真人脚本 | 40 秒、6 个镜头，包含画面、口播、字幕和拍摄注意 |
+| AIGC Prompt | 5 个镜头，包含画面 Prompt、旁白和连贯性约束 |
+| 风险检测 | 固定识别 2 处：绝对化承诺、无知识依据功能 |
+| 演示反馈 | 播放量 4,280、完播率 31%、高意向咨询 3 次 |
+| 经验升级 | 本次反馈作为第 3 次有效观察，升级为已验证策略 |
 
-When using the Sites plugin, follow its skill instructions for installation, builds, and publishing. These npm commands remain available for standalone use.
+更完整的数据边界见 [演示数据说明](docs/演示数据说明.md)。
 
-The portable build runs Vinext directly without a host `timeout` command. The managed-linux build uses `scripts/build-verified.sh` and its existing `SITES_BUILD_TIMEOUT` setting.
+## 3. 5 分钟讲解路线
 
-## Learn More
+推荐只讲一条主线：使用示例材料生成选题，选择第一名，生成真人脚本，完成检测、发布与反馈。
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+| 时间 | 展示内容 | 核心讲法 |
+| --- | --- | --- |
+| 0:00–0:30 | 首页与两个入口 | 不是直接生成文案，而是先决定什么值得拍 |
+| 0:30–1:15 | 加载材料并生成选题 | 系统先提炼照护需求、老人情况和购买阻力 |
+| 1:15–2:05 | 4 个候选与评分依据 | 推荐结果有证据，可查看四维评分和来源 |
+| 2:05–2:45 | 选择选题、细分版本和内容形式 | 同一选题可按痛点、老人情况或购买阻力继续收敛 |
+| 2:45–3:35 | 真人脚本与 AIGC Prompt | 输出已经细化到镜头、动作、口播、字幕和拍摄注意 |
+| 3:35–4:15 | 风险检测和一键修改 | 发布前检查绝对化宣传和没有产品依据的功能表述 |
+| 4:15–5:00 | 标记发布、载入反馈、经验升级 | 重点学习高意向咨询，而不是只看播放量 |
+
+逐句讲解版本见 [5 分钟演示路线](docs/5分钟演示路线.md)。
+
+## 4. 演示操作说明
+
+最稳的操作顺序：
+
+1. 点击右上角“重置”，保证从初始状态开始。
+2. 点击“加载示例材料”。
+3. 点击“分析并生成选题”。
+4. 展开第一条选题的“查看评分依据”。
+5. 点击第一条选题的“选择这个选题”。
+6. 选择“一个人夜间照护，翻身太累”。
+7. 保持“真人脚本”，点击“生成真人脚本”。
+8. 点击“检测内容”，展示 2 处风险。
+9. 点击“应用 2 处安全修改”。
+10. 点击“确认并标记发布”，保持默认平台和日期并确认。
+11. 在内容任务页点击“载入演示反馈”。
+12. 点击“提交反馈并形成经验”，展示已验证策略。
+
+完整的准备、分支演示与异常恢复见 [演示操作说明](docs/演示操作说明.md)。
+
+## 5. 真实能力与演示能力边界
+
+真实实现：页面交互、流程状态、评分依据展示、内容形式切换、风险定位与文本替换、发布反馈、经验升级、本地持久化、重置和响应式布局。
+
+演示数据：材料理解结果、候选选题与分数、脚本正文、AIGC Prompt、风险规则命中、发布平台回传和历史效果数据。当前版本尚未接入真实大模型、CRM、内容平台发布接口或线上数据库。
+
+## 在线地址
+
+- GitHub 仓库：发布后补充
+- 本地演示：`http://localhost:5173/`
+
+## 项目结构
+
+```text
+app/
+  page.tsx          # MVP 状态与完整流程
+  demo-views.tsx    # 各工作台页面与交互视图
+  demo-data.ts      # 稳定演示数据
+  globals.css       # 视觉规范与响应式样式
+components/ui/      # 基础交互组件
+docs/               # 演示路线、操作说明和数据边界
+public/             # 站点静态资源
+```

@@ -74,7 +74,7 @@ export function WorkflowRail({ step }: { step: number }) {
         const complete = index < step
         const active = index === step && step < 5
         return (
-          <div key={label} className={`workflow-node ${complete ? "is-complete" : ""} ${active ? "is-active" : ""}`}>
+          <div key={label} aria-current={active ? "step" : undefined} className={`workflow-node ${complete ? "is-complete" : ""} ${active ? "is-active" : ""}`}>
             <span>{complete || step === 5 ? <Check className="size-3.5" /> : index + 1}</span>
             <p>{label}</p>
           </div>
