@@ -97,7 +97,7 @@ npm run build
 
 ## 在线地址
 
-- GitHub 仓库：发布后补充
+- GitHub 仓库：[yuxinww/lianying-content-desk-mvp](https://github.com/yuxinww/lianying-content-desk-mvp)（私有）
 - 本地演示：`http://localhost:5173/`
 
 ## 项目结构
